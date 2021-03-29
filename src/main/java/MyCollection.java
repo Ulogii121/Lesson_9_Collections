@@ -8,7 +8,6 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
 
     private Object[] elementData = new Object[10];
 
-
     @Override
     public boolean add(final E e) {
         if (size == elementData.length) {
@@ -35,12 +34,21 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
 
     @Override
     public boolean contains(final Object o) {
-        return elementData.equals(o);
+        for (int i = 0; i < size; i++) {
+            if (elementData[i] == null && o == null) {
+                return true;
+            } else {
+                if (elementData[i] != null && (elementData[i]).equals(o)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
     public Object[] toArray() {
-        return new Object[size()];
+        return Arrays.copyOf(elementData, size);
     }
 
     @Override
@@ -49,25 +57,31 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
             return (T[]) Arrays.copyOf(elementData, size, a.getClass());
         }
         System.arraycopy(elementData, 0, a, 0, size);
-        if (a.length > size) {
-            a[size] = null;
-        }
         return a;
     }
 
     @Override
     public boolean remove(final Object o) {
-        if (elementData.equals(o)) {
-            System.arraycopy(elementData, 0, elementData, 0, size - 1);
-            size--;
-            return true;
+        MyIterator<E> iter = new MyIterator<E>();
+        while (iter.hasNext()) {
+            Object newIter = iter.next();
+            if ((o == null && newIter == null)
+                    || (o != null && o.equals(newIter))) {
+                iter.remove();
+                return true;
+            }
         }
         return false;
     }
 
     @Override
     public boolean containsAll(final Collection<?> c) {
-        return c.equals(elementData);
+        for (Object e : c) {
+            if (!contains(e)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -81,12 +95,19 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
     @Override
     public boolean removeAll(final Collection<?> c) {
         boolean ifRemove = false;
-        for (Object e : c) {
-            if (c.equals(elementData)) {
-                remove(e);
-                ifRemove = true;
+        int point = 0;
+        for (int i = 0; i < size; i++) {
+            if (!c.contains(elementData[i])) {
+                elementData[point] = elementData[i];
+                point++;
             }
-            ifRemove = false;
+        }
+        if (point < size) {
+            for (int i = point; i < size; i++) {
+                elementData[i] = null;
+            }
+            size = point;
+            ifRemove = true;
         }
         return ifRemove;
     }
@@ -94,12 +115,19 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
     @Override
     public boolean retainAll(final Collection<?> c) {
         boolean ifRetain = false;
-        for (Object e : c) {
-            if (!c.equals(elementData)) {
-                remove(e);
-                ifRetain = true;
+        int point = 0;
+        for (int i = 0; i < size; i++) {
+            if (c.contains(elementData[i])) {
+                elementData[point] = elementData[i];
+                point++;
             }
-            ifRetain = false;
+        }
+        if (point < size) {
+            for (int i = point; i < size; i++) {
+                elementData[i] = null;
+            }
+            size = point;
+            ifRetain = true;
         }
         return ifRetain;
     }
@@ -113,6 +141,7 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
     private class MyIterator<T> implements Iterator<T> {
 
         private int cursor = 0;
+        private boolean repeat;
 
         @Override
         public boolean hasNext() {
@@ -125,18 +154,24 @@ public class MyCollection<E> implements Collection<E>, Iterable<E> {
             if (cursor >= size) {
                 throw new NoSuchElementException();
             }
+            repeat = false;
             return (T) elementData[cursor++];
         }
 
         @Override
         public void remove() {
-            if (cursor == 0) {
+            if (cursor == 0 || repeat) {
                 throw new IllegalStateException();
             }
-            if (cursor < size) {
-                System.arraycopy(elementData, cursor + 1, elementData, cursor, size - cursor - 1);
+            if (!hasNext()) {
+                size--;
+            } else {
+                if (size - (cursor - 1) >= 0) {
+                    System.arraycopy(elementData, cursor, elementData, cursor - 1, size - (cursor - 1));
+                }
             }
             size--;
+            repeat = true;
         }
     }
 }
